@@ -59,7 +59,10 @@ class ConstrainedGeneration:
 
     def _generate_value(self, slot: SlotDefinition):
         slot_type = slot.range
-        generator = None
+        regex_pattern = self._get_regex_pattern(slot)
+
+        if slot.multivalued:
+            return self._generate_array(slot)
 
         if slot_type in ["integer", "float", "double"]:
             return self._generate_number(slot)
@@ -71,3 +74,12 @@ class ConstrainedGeneration:
             return self._generate_enum(slot)
         else:
             return self._generate_string(slot)
+
+    def _get_regex_pattern(self, slot: SlotDefinition):
+        #Slot regex pattern is preferred over type regex pattern
+        if slot.pattern:
+            return slot.pattern
+        elif slot.range in self._ontology_schema.all_types():
+            return self._ontology_schema.get_type(slot.range).pattern
+        else:
+            return None

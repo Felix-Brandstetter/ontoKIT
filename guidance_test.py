@@ -7,9 +7,9 @@ import torch
 model = models.Transformers("mistralai/Mistral-7B-Instruct-v0.2", device_map="auto", load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16)
 
 ontology = f'''\
-Say the following word: "{gen(stop='"')}
+Im feeling very sad.
 
-Word: Test"
+Is the above text a negative text? {gen(regex="[0-2]?[0-9]:[0-5][0-9]:[0-5][0-9]")}
 '''
 
 model = model + ontology

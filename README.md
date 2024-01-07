@@ -54,3 +54,8 @@ personal_info: Array<{ // Personal information about a given person.
  last_name: string // The last name of the person
  age: number // The age of the person in years.
 
+
+
+
+ types definieren und sagen wie man eigene anlegt
+
