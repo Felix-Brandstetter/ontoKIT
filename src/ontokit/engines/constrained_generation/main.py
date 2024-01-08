@@ -70,7 +70,7 @@ class ConstrainedGeneration:
 
         if slot.multivalued:
             return self._generate_array(slot, extracted_ontology)
-        elif slot.range in self.ontology_schema.all_enums():
+        elif slot.range in self._ontology_schema.all_enums():
             return self._generate_value_based_on_enum(slot, prompt)
         elif regex_pattern:
             return self._generate_value_based_on_regex(slot, prompt, regex_pattern)

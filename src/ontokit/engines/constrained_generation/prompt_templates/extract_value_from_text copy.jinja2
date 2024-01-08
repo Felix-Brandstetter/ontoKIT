@@ -1,0 +1,36 @@
+{# Brief introduction outlining the task #}
+You are tasked with extracting specific information from the provided text.
+
+{# Section for the text to be analyzed #}
+Text for Extraction:
+"""
+{{text}}
+"""
+
+{# Section for the JSON schema, if provided #}
+{% if extracted_ontology %}
+JSON Schema:
+"""
+{{extracted_ontology}}
+"""
+{% endif %}
+
+{# Highlight the slot name and its description, if available #}
+Slot Name: {{slot_name}}
+{% if slot_description %}
+Description of {{slot_name}}:
+"""
+{{slot_description}}
+"""
+{% endif %}
+
+{# Instructions for extracting the value #}
+Extract the value for {{slot_name}} from the text. If the information is not available, return 'N/V'.
+
+{# Note on required data type, if applicable #}
+{% if slot_type %}
+Note: The value must be of type {{slot_type}}.
+{% endif %}
+
+{# Emphasize the response format #}
+Respond only with the extracted value or 'N/V'. Avoid additional text or explanations.
