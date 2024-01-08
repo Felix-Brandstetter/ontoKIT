@@ -12,6 +12,8 @@ class ConstrainedGeneration:
     def __init__(self, model: models.Model, path_to_linkml_schema: str, text: str):
         self.model = model
         self.text = text
+        self.extracted_ontology = {}
+
         try:
             self._ontology_schema = SchemaView(path_to_linkml_schema)
             self.tree_root_class = self._get_tree_root_class()
@@ -37,32 +39,23 @@ class ConstrainedGeneration:
         raise Exception("No root class found in LinkML schema")
 
     def extract_ontology(self) -> str:
-        # Extrahieren der Slots der Root-Klasse (ohne Klassenname)
-        json_schema = json.dumps(
-            self._extract_slots_from_class(self.tree_root_class), indent=1
-        )
+        self._extract_slots_from_class(self.tree_root_class, self.extracted_ontology)
+        json_schema = json.dumps(self.extracted_ontology, indent=1)
         return json_schema
 
-    def _extract_slots_from_class(self, class_name: str):
-        extracted_ontology = {}
-
+    def _extract_slots_from_class(self, class_name: str, current_structure: dict):
         # Iteration durch alle Slots der Klasse
         for slot in self._ontology_schema.class_induced_slots(class_name):
-            # Prüfen, ob der Bereich des Slots eine Klasse ist
             if slot.range in self._ontology_schema.all_classes():
-                # Rekursive Extraktion für Unterklassen
-                extracted_ontology[slot.name] = self._extract_slots_from_class(
-                    slot.range
-                )
+                # Erstellen eines neuen geschachtelten Wörterbuchs für die Unterklasse
+                current_structure[slot.name] = {}
+                self._extract_slots_from_class(slot.range, current_structure[slot.name])
             else:
-                # Einfache Zuweisung, wenn es kein Unterklassenbereich ist
-                extracted_ontology[slot.name] = self._generate_value(
-                    slot, extracted_ontology
+                # Einfache Zuweisung für Slots ohne Unterklasse
+                current_structure[slot.name] = "VALUE"
+                current_structure[slot.name] = self._generate_value(
+                    slot=slot, extracted_ontology=self.extracted_ontology
                 )
-
-        return (
-            extracted_ontology  # Hier wird das reine Wörterbuch der Slots zurückgegeben
-        )
 
     def _generate_value(self, slot: SlotDefinition, extracted_ontology: dict):
         regex_pattern = self._get_regex_pattern(slot)
@@ -86,7 +79,9 @@ class ConstrainedGeneration:
         else:
             return None
 
-    def _generate_number(self, slot: SlotDefinition, prompt: str, regex_pattern: str = None):
+    def _generate_number(
+        self, slot: SlotDefinition, prompt: str, regex_pattern: str = None
+    ):
         str_value = self._generate_value_based_on_regex(slot, prompt, regex_pattern)
         if slot.range == "integer":
             try:
