@@ -142,5 +142,6 @@ class ConstrainedGeneration:
             extracted_ontology=json.dumps(extracted_ontology, indent=1),
             slot_name=slot.name,
             slot_description=slot_description,
+            slot_type=slot.range,
         )
         return prompt
