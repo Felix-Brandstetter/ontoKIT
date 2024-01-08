@@ -11,6 +11,6 @@ regex = "[0-2]?[0-9]:[0-5][0-9]:[0-5][0-9]"
 
 temp_llm = model
 
-temp_llm = temp_llm + prompt + gen(name="value", regex="[^\s].*", stop='"')
-
+temp_llm = temp_llm + prompt + select(name="value", options=[1,2,3])
+print(type(temp_llm["value"]))
 print(temp_llm["value"])

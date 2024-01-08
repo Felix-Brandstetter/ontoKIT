@@ -72,11 +72,10 @@ class ConstrainedGeneration:
             return self._generate_array(slot, extracted_ontology)
         elif slot.range in self._ontology_schema.all_enums():
             return self._generate_value_based_on_enum(slot, prompt)
-        elif regex_pattern:
-            return self._generate_value_based_on_regex(slot, prompt, regex_pattern)
+        elif slot.range in ["integer", "float"]:
+            return self._generate_number(slot, prompt, regex_pattern)
         else:
-            logger.warning("No regex pattern found for slot %s", slot.name)
-            return self._generate_string(slot, prompt)
+            return self._generate_value_based_on_regex(slot, prompt, regex_pattern)
 
     def _get_regex_pattern(self, slot: SlotDefinition):
         # Slot regex pattern is preferred over type regex pattern
@@ -87,32 +86,46 @@ class ConstrainedGeneration:
         else:
             return None
 
+    def _generate_number(self, slot: SlotDefinition, prompt: str, regex_pattern: str = None):
+        str_value = self._generate_value_based_on_regex(slot, prompt, regex_pattern)
+        if slot.range == "integer":
+            try:
+                return int(str_value)
+            except ValueError:
+                logger.error("Could not convert %s to integer", str_value)
+                return str_value
+        elif slot.range == "float":
+            try:
+                return float(str_value)
+            except ValueError:
+                logger.error("Could not convert %s to float", str_value)
+                return str_value
+        else:
+            logger.error("Could not convert %s to number", str_value)
+            return str_value
+
     def _generate_array(self, slot: SlotDefinition, extracted_ontology: dict):
         # TODO Do not change the slot, but create a flag to say that the slot is being processed.
         slot.multivalued = False
-        return [self._generate_value(slot,extracted_ontology)]
+        return [self._generate_value(slot, extracted_ontology)]
 
     def _generate_value_based_on_regex(
-        self, slot: SlotDefinition, prompt: str, regex_pattern: str
+        self, slot: SlotDefinition, prompt: str, regex_pattern: str = None
     ):
         temp_llm = self.model
-        temp_llm = temp_llm + prompt + gen(name=slot.name, regex=regex_pattern)
-        value = temp_llm[slot.name]
-        return value
-
-    def _generate_string(self, slot: SlotDefinition, prompt: str):
-        temp_llm = self.model
-        temp_llm = temp_llm + prompt + gen(name=slot.name)
+        temp_llm = (
+            temp_llm + prompt + gen(name=slot.name, regex=regex_pattern, stop='"')
+        )
         value = temp_llm[slot.name]
         return value
 
     def _generate_value_based_on_enum(self, slot: SlotDefinition, prompt: str):
         enum_def = self._ontology_schema.get_enum(slot.range)
-        permissible_values = [
-                    str(k) for k in enum_def.permissible_values.keys()
-                ]
+        permissible_values = [str(k) for k in enum_def.permissible_values.keys()]
         temp_llm = self.model
-        temp_llm = temp_llm + prompt + select(name=slot.name, options=permissible_values)
+        temp_llm = (
+            temp_llm + prompt + select(name=slot.name, options=permissible_values)
+        )
         value = temp_llm[slot.name]
         return value
 

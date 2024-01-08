@@ -53,12 +53,6 @@ types:
     description: A real number that conforms to the xsd:float specification
     pattern: -?[0-9]+(\.[0-9]+)?
 
-  double:
-    uri: xsd:double
-    base: float
-    description: A real number that conforms to the xsd:double specification
-    pattern: -?[0-9]+(\.[0-9]+)?
-
   time:
     uri: xsd:time
     base: XSDTime
