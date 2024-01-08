@@ -30,36 +30,44 @@ default_range: string
 types:
   string:
     uri: xsd:string
+    base: str
     description: A character string
 
 
   integer:
     uri: xsd:integer
+    base: int
     description: An integer
     pattern: -?[0-9]+
 
   boolean:
     uri: xsd:boolean
+    base: Bool
+    repr: bool
     description: A binary (true or false) value
     pattern: (true|false)
 
 
   float:
     uri: xsd:float
+    base: float
     description: A real number that conforms to the xsd:float specification
     pattern: -?[0-9]+(\.[0-9]+)?
 
   double:
     uri: xsd:double
+    base: float
     description: A real number that conforms to the xsd:double specification
     pattern: -?[0-9]+(\.[0-9]+)?
 
   time:
     uri: xsd:time
+    base: XSDTime
     description: A time object represents a (local) time of day, independent of any particular day
     pattern: "[0-2]?[0-9]:[0-5][0-9]:[0-5][0-9]"
 
   date:
     uri: xsd:date
+    base: XSDDate
     description: a date (year, month and day) in an idealized calendar
     pattern: \d\d\.\d\d\.\d\d\d\d

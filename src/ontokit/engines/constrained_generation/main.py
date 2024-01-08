@@ -3,11 +3,12 @@ from guidance import models, gen, select, system, one_or_more, zero_or_more, ins
 import logging
 import json
 from linkml_runtime.linkml_model.meta import SlotDefinition
+from jinja2 import Template
 
 logger = logging.getLogger(__name__)
 
-class ConstrainedGeneration:
 
+class ConstrainedGeneration:
     def __init__(self, model: models.Model, path_to_linkml_schema: str, text: str):
         self.model = model
         self.text = text
@@ -20,7 +21,6 @@ class ConstrainedGeneration:
         except Exception as e:
             logger.error("Could not load schema at %s: %s", path_to_linkml_schema, e)
             raise e
-
 
     def _get_tree_root_class(self):
         """
@@ -36,50 +36,87 @@ class ConstrainedGeneration:
         logger.error("No root class found in LinkML schema")
         raise Exception("No root class found in LinkML schema")
 
-
     def extract_ontology(self) -> str:
         # Extrahieren der Slots der Root-Klasse (ohne Klassenname)
-        json_schema = json.dumps(self._extract_slots_from_class(self.tree_root_class), indent=1)
+        json_schema = json.dumps(
+            self._extract_slots_from_class(self.tree_root_class), indent=1
+        )
         return json_schema
 
     def _extract_slots_from_class(self, class_name: str):
-        class_structure = {}
+        extracted_ontology = {}
 
         # Iteration durch alle Slots der Klasse
         for slot in self._ontology_schema.class_induced_slots(class_name):
             # Prüfen, ob der Bereich des Slots eine Klasse ist
             if slot.range in self._ontology_schema.all_classes():
                 # Rekursive Extraktion für Unterklassen
-                class_structure[slot.name] = self._extract_slots_from_class(slot.range)
+                extracted_ontology[slot.name] = self._extract_slots_from_class(
+                    slot.range
+                )
             else:
                 # Einfache Zuweisung, wenn es kein Unterklassenbereich ist
-                class_structure[slot.name] = self._generate_value(slot)
+                extracted_ontology[slot.name] = self._generate_value(
+                    slot, extracted_ontology
+                )
 
-        return class_structure  # Hier wird das reine Wörterbuch der Slots zurückgegeben
+        return (
+            extracted_ontology  # Hier wird das reine Wörterbuch der Slots zurückgegeben
+        )
 
-    def _generate_value(self, slot: SlotDefinition):
-        slot_type = slot.range
+    def _generate_value(self, slot: SlotDefinition, extracted_ontology: dict):
         regex_pattern = self._get_regex_pattern(slot)
+        prompt = self._get_prompt(slot, extracted_ontology)
 
         if slot.multivalued:
-            return self._generate_array(slot)
-
-        if slot_type in ["integer", "float", "double"]:
-            return self._generate_number(slot)
-        elif slot_type == "boolean":
-            return self._generate_boolean(slot)
-        elif slot_type == "datetime":
-            return self._generate_datetime(slot)
-        elif slot_type in self.ontology_schema.all_enums():
-            return self._generate_enum(slot)
+            return self._generate_array(slot, extracted_ontology)
+        if regex_pattern:
+            return self._generate_value_based_on_regex(slot, prompt, regex_pattern)
         else:
-            return self._generate_string(slot)
+            logger.warning("No regex pattern found for slot %s", slot.name)
+            return self._generate_string(slot, prompt)
 
     def _get_regex_pattern(self, slot: SlotDefinition):
-        #Slot regex pattern is preferred over type regex pattern
+        # Slot regex pattern is preferred over type regex pattern
         if slot.pattern:
             return slot.pattern
         elif slot.range in self._ontology_schema.all_types():
             return self._ontology_schema.get_type(slot.range).pattern
         else:
             return None
+
+    def _generate_array(self, slot: SlotDefinition, extracted_ontology: dict):
+        # TODO Do not change the slot, but create a flag to say that the slot is being processed.
+        slot.multivalued = False
+        return [self._generate_value(slot,extracted_ontology)]
+
+    def _generate_value_based_on_regex(
+        self, slot: SlotDefinition, prompt: str, regex_pattern: str
+    ):
+        temp_llm = self.model
+        temp_llm = temp_llm + prompt + gen(name=slot.name, regex=regex_pattern)
+        value = temp_llm[slot.name]
+        print(temp_llm)
+        return value
+
+    def _generate_string(self, slot: SlotDefinition, prompt: str):
+        temp_llm = self.model
+        temp_llm = temp_llm + prompt + gen(name=slot.name)
+        value = temp_llm[slot.name]
+        return value
+
+    def _get_prompt(self, slot: SlotDefinition, extracted_ontology: dict):
+        slot_description = slot.description
+        with open(
+            "src/ontokit/engines/constrained_generation/prompt_templates/extract_value_from_text.jinja2",
+            encoding="utf-8",
+        ) as file:
+            template_txt = file.read()
+            template = Template(template_txt)
+        prompt = template.render(
+            text=self.text,
+            extracted_ontology=json.dumps(extracted_ontology, indent=1),
+            slot_name=slot.name,
+            slot_description=slot_description,
+        )
+        return prompt
