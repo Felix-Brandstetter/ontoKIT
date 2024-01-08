@@ -70,7 +70,9 @@ class ConstrainedGeneration:
 
         if slot.multivalued:
             return self._generate_array(slot, extracted_ontology)
-        if regex_pattern:
+        elif slot.range in self.ontology_schema.all_enums():
+            return self._generate_value_based_on_enum(slot, prompt)
+        elif regex_pattern:
             return self._generate_value_based_on_regex(slot, prompt, regex_pattern)
         else:
             logger.warning("No regex pattern found for slot %s", slot.name)
@@ -96,12 +98,21 @@ class ConstrainedGeneration:
         temp_llm = self.model
         temp_llm = temp_llm + prompt + gen(name=slot.name, regex=regex_pattern)
         value = temp_llm[slot.name]
-        print(temp_llm)
         return value
 
     def _generate_string(self, slot: SlotDefinition, prompt: str):
         temp_llm = self.model
         temp_llm = temp_llm + prompt + gen(name=slot.name)
+        value = temp_llm[slot.name]
+        return value
+
+    def _generate_value_based_on_enum(self, slot: SlotDefinition, prompt: str):
+        enum_def = self._ontology_schema.get_enum(slot.range)
+        permissible_values = [
+                    str(k) for k in enum_def.permissible_values.keys()
+                ]
+        temp_llm = self.model
+        temp_llm = temp_llm + prompt + select(name=slot.name, options=permissible_values)
         value = temp_llm[slot.name]
         return value
 

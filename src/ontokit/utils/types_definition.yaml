@@ -32,6 +32,7 @@ types:
     uri: xsd:string
     base: str
     description: A character string
+    pattern: [^\s].*
 
 
   integer:
