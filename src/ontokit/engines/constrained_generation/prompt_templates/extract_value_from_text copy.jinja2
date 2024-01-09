@@ -1,36 +1,24 @@
-{# Brief introduction outlining the task #}
-You are tasked with extracting specific information from the provided text.
+You are a Large Language Model, which is specialized in extracting information from a text.
 
-{# Section for the text to be analyzed #}
-Text for Extraction:
-"""
+Here is the text from which the information is to be extracted: """
 {{text}}
 """
 
-{# Section for the JSON schema, if provided #}
-{% if extracted_ontology %}
-JSON Schema:
-"""
+The previous output resulted in the following JSON schema: """
 {{extracted_ontology}}
 """
-{% endif %}
 
-{# Highlight the slot name and its description, if available #}
-Slot Name: {{slot_name}}
-{% if slot_description %}
-Description of {{slot_name}}:
-"""
+Please extract the value for "{{slot_name}}" from the above text. {% if slot_description %}The value to be extracted for "{{slot_name}}" was described by the user as follows:
+Description: """
 {{slot_description}}
 """
 {% endif %}
 
-{# Instructions for extracting the value #}
-Extract the value for {{slot_name}} from the text. If the information is not available, return 'N/V'.
+It is crucial that you answer with only the extracted value, without any additional text or explanations. In particular, you must not return the JSON schema under any circumstances.
+Take a deep breath before answering. You can take your time answering.
 
-{# Note on required data type, if applicable #}
 {% if slot_type %}
-Note: The value must be of type {{slot_type}}.
+The extracted value must be a {slot_type} value.
 {% endif %}
 
-{# Emphasize the response format #}
-Respond only with the extracted value or 'N/V'. Avoid additional text or explanations.
+value: "

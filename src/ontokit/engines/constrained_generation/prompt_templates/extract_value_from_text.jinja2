@@ -8,17 +8,14 @@ The previous output resulted in the following JSON schema: """
 {{extracted_ontology}}
 """
 
-Please extract the value for "{{slot_name}}" from the above text. {% if slot_description %}The value to be extracted for "{{slot_name}}" was described by the user as follows:
+In the JSON schema above, "VALUE" is a placeholder for the actual value to be extracted from the text. Please replace "VALUE" with the corresponding extracted value from the above text.
+{% if slot_description %}The VALUE to be extracted for "{{slot_name}}" was described by the user as follows:
 Description: """
 {{slot_description}}
 """
 {% endif %}
 
-It is crucial that you answer with only the extracted value, without any additional text or explanations. In particular, you must not return the JSON schema under any circumstances.
+It is crucial that you answer with only the extracted VALUE, without any additional text or explanations.
 Take a deep breath before answering. You can take your time answering.
 
-{% if slot_type %}
-The extracted value must be a {slot_type} value.
-{% endif %}
-
-value: "
+VALUE: "
